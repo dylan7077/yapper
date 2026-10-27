@@ -16,8 +16,9 @@ Use the AI you already have: **sign in with your Claude, ChatGPT or Google accou
   | **Claude** (Anthropic) | ✅ Pro / Max | ✅ |
   | **ChatGPT** (OpenAI) | ✅ Plus / Pro / Business | ✅ |
   | **Gemini** (Google) | ✅ Google account | ✅ free tier |
+  | **OpenCode Go** (DeepSeek, Kimi, Qwen, MiMo…) | — | ✅ with a backup model |
   | **Local models** (Ollama, LM Studio, llama.cpp) | — | free, nothing to sign up for |
-  | **Other APIs** (OpenRouter, Groq, Mistral, DeepSeek…) | — | ✅ |
+  | **Other APIs** (OpenRouter, Groq, Mistral…) | — | ✅ |
 
   Switch any time; changes apply instantly. Optionally fall back to a local model when the main AI is down.
 - **Discord tools (optional):** let the AI act in your server when an admin asks: look up members and messages, create channels and events, manage roles, moderate. Powered by [discord-mcp](https://github.com/SaseQ/discord-mcp); read-only and admins-only by default, and it asks before anything destructive. [Details](#discord-tools).

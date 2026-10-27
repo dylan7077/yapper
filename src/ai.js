@@ -19,6 +19,7 @@ export const PROVIDERS = {
   'codex-cli': { label: 'ChatGPT', via: 'signed in', tools: false },
   'gemini': { label: 'Gemini', via: 'API key', tools: true },
   'gemini-cli': { label: 'Gemini', via: 'signed in', tools: false },
+  'opencode': { label: 'OpenCode Go', via: 'API key', tools: true },
   'local': { label: 'Local model', via: 'on this machine', tools: true },
   'custom': { label: 'Custom API', via: 'OpenAI-compatible', tools: true }
 };
@@ -27,6 +28,7 @@ export const DEFAULT_MODELS = {
   'anthropic': 'claude-opus-5-5',
   'openai': 'gpt-5-mini',
   'gemini': 'gemini-2.5-flash',
+  'opencode': 'deepseek-v4.1-flash',
   'local': 'qwen2.5:3b',
   'custom': ''
 };
@@ -34,14 +36,16 @@ export const DEFAULT_MODELS = {
 // Every setting is read from process.env on each call, so changes saved in the dashboard apply immediately.
 const env = (key, fallback = '') => process.env[key] || fallback;
 
-// OpenAI-style chat/completions endpoints. Older installs used OPENAI_BASE_URL / OPENCODE_GO_* for a custom
-// endpoint and OLLAMA_ENDPOINT / LOCAL_MODEL_NAME for Ollama; those still work.
+// OpenAI-style chat/completions endpoints. Older installs used OPENAI_BASE_URL for a custom endpoint and
+// OLLAMA_ENDPOINT / LOCAL_MODEL_NAME for Ollama; those still work.
 function endpoint(provider) {
   switch (provider) {
     case 'openai':
       return { base: OPENAI_BASE, key: env('OPENAI_API_KEY'), model: env('OPENAI_MODEL', DEFAULT_MODELS.openai) };
     case 'gemini':
       return { base: GEMINI_BASE, key: env('GEMINI_API_KEY'), model: env('GEMINI_MODEL', DEFAULT_MODELS.gemini) };
+    case 'opencode':
+      return { base: OPENCODE_GO_BASE, key: env('OPENCODE_GO_API_KEY'), model: env('OPENCODE_GO_MODEL', DEFAULT_MODELS.opencode) };
     case 'local': {
       const legacy = env('OLLAMA_ENDPOINT') && `${env('OLLAMA_ENDPOINT').replace(/\/+$/, '')}/v1`;
       return { base: env('LOCAL_BASE_URL', legacy || 'http://127.0.0.1:11434/v1').replace(/\/+$/, ''), key: env('LOCAL_API_KEY', 'local'), model: env('LOCAL_MODEL', env('LOCAL_MODEL_NAME', DEFAULT_MODELS.local)) };
@@ -49,7 +53,6 @@ function endpoint(provider) {
     case 'custom':
       if (env('CUSTOM_BASE_URL')) return { base: env('CUSTOM_BASE_URL').replace(/\/+$/, ''), key: env('CUSTOM_API_KEY'), model: env('CUSTOM_MODEL') };
       if (env('OPENAI_BASE_URL')) return { base: env('OPENAI_BASE_URL').replace(/\/+$/, ''), key: env('OPENAI_API_KEY'), model: env('OPENAI_MODEL') };
-      if (env('OPENCODE_GO_API_KEY')) return { base: OPENCODE_GO_BASE, key: env('OPENCODE_GO_API_KEY'), model: env('OPENCODE_GO_MODEL', 'deepseek-v4.1-flash') };
       return { base: '', key: '', model: '' };
     default:
       return null;
@@ -64,7 +67,8 @@ export function activeProvider() {
   if (env('ANTHROPIC_API_KEY')) return 'anthropic';
   if (env('OPENAI_API_KEY') && !env('OPENAI_BASE_URL')) return 'openai';
   if (env('GEMINI_API_KEY')) return 'gemini';
-  if (env('CUSTOM_BASE_URL') || env('OPENAI_BASE_URL') || env('OPENCODE_GO_API_KEY')) return 'custom';
+  if (env('OPENCODE_GO_API_KEY')) return 'opencode';
+  if (env('CUSTOM_BASE_URL') || env('OPENAI_BASE_URL')) return 'custom';
   return 'local';
 }
 
@@ -76,7 +80,8 @@ export function providerModel(provider, purpose = 'chat') {
     case 'claude-cli': return env('CLAUDE_MODEL_CLI');
     case 'codex-cli': return env('CODEX_MODEL_CLI');
     case 'gemini-cli': return env('GEMINI_MODEL_CLI');
-    case 'custom': return (deep && env('OPENCODE_GO_CRASH_MODEL')) || endpoint('custom').model;
+    case 'opencode': return (deep && env('OPENCODE_GO_CRASH_MODEL')) || endpoint('opencode').model;
+    case 'custom': return endpoint('custom').model;
     default: return endpoint(provider)?.model ?? '';
   }
 }
@@ -165,8 +170,7 @@ async function postChat(provider, messages, { tools = [], sessionId, model }) {
   return message;
 }
 
-async function chatRun(provider, { system, messages, tools = [], executeTool, maxSteps = 8, sessionId, purpose }) {
-  const model = providerModel(provider, purpose);
+async function chatRun(provider, { system, messages, tools = [], executeTool, maxSteps = 8, sessionId, purpose, model = providerModel(provider, purpose) }) {
   const history = [{ role: 'system', content: system }, ...messages.map(m => ({ role: m.role, content: m.content }))];
   const offered = executeTool ? tools : [];
   for (let step = 0; step < maxSteps; step++) {
@@ -301,6 +305,7 @@ function configured(provider) {
     case 'anthropic': return !!env('ANTHROPIC_API_KEY');
     case 'openai':
     case 'gemini': return !!endpoint(provider).key;
+    case 'opencode': return !!env('OPENCODE_GO_API_KEY');
     case 'custom': return !!endpoint('custom').base;
     default: return true;
   }
@@ -312,6 +317,17 @@ async function runProvider(provider, options) {
     case 'claude-cli': return await claudeCliRun(options);
     case 'codex-cli': return await codexCliRun(options);
     case 'gemini-cli': return await geminiCliRun(options);
+    case 'opencode': {
+      const backup = env('OPENCODE_GO_FALLBACK_MODEL');
+      const main = providerModel('opencode', options.purpose);
+      try {
+        return await chatRun(provider, options);
+      } catch (err) {
+        if (!backup || backup === main) throw err;
+        console.warn(`[AI] OpenCode Go ${main}: ${err.message}; trying ${backup}`);
+        return await chatRun(provider, { ...options, model: backup });
+      }
+    }
     default: return await chatRun(provider, options);
   }
 }

@@ -353,6 +353,7 @@ const AI_CHOICES = [
   { id: 'claude', name: 'Claude', by: 'Anthropic', mark: 'C', signIn: 'claude-cli', key: 'anthropic', signInLabel: 'Sign in with Claude' },
   { id: 'chatgpt', name: 'ChatGPT', by: 'OpenAI', mark: 'G', signIn: 'codex-cli', key: 'openai', signInLabel: 'Sign in with ChatGPT' },
   { id: 'gemini', name: 'Gemini', by: 'Google', mark: '✦', signIn: 'gemini-cli', key: 'gemini', signInLabel: 'Sign in with Google' },
+  { id: 'opencode', name: 'OpenCode Go', by: 'OpenCode', mark: 'OC', key: 'opencode' },
   { id: 'local', name: 'Local model', by: 'Ollama, LM Studio…', mark: '⌂', key: 'local' },
   { id: 'custom', name: 'Other API', by: 'OpenRouter, Groq…', mark: '…', key: 'custom' }
 ];
@@ -416,13 +417,18 @@ function keyPane(choice) {
   if (choice.id === 'gemini') return h('div', { class: 'stack' },
     settingField('GEMINI_API_KEY', 'API key', { secret: true, placeholder: 'AIza…', hint: 'Free from aistudio.google.com → Get API key.' }),
     modelField('GEMINI_MODEL', 'gemini'));
+  if (choice.id === 'opencode') return h('div', { class: 'stack' },
+    h('p', { class: 'muted small' }, 'A low-cost subscription to open models (DeepSeek, Kimi, Qwen, MiMo…) from ', link('https://opencode.ai', 'opencode.ai'), '.'),
+    settingField('OPENCODE_GO_API_KEY', 'API key', { secret: true, hint: 'From opencode.ai → your workspace → API keys.' }),
+    modelField('OPENCODE_GO_MODEL', 'opencode'),
+    modelField('OPENCODE_GO_FALLBACK_MODEL', 'opencode', { label: 'Backup model (optional)', placeholder: 'e.g. mimo-v2.6-pro', hint: 'Tried automatically when the main model fails or is busy.' }));
   if (choice.id === 'local') return h('div', { class: 'stack' },
     h('p', { class: 'muted small' }, 'Runs on your own hardware: free and private. Install ', link('https://ollama.com', 'Ollama'), ' and download a model, or start the local server in ', link('https://lmstudio.ai', 'LM Studio'), '.'),
     cmd('ollama pull qwen2.5:7b'),
     settingField('LOCAL_BASE_URL', 'Server address', { placeholder: 'http://127.0.0.1:11434/v1', hint: 'Ollama: http://127.0.0.1:11434/v1 · LM Studio: http://127.0.0.1:1234/v1' }),
     modelField('LOCAL_MODEL', 'local'));
   return h('div', { class: 'stack' },
-    h('p', { class: 'muted small' }, 'Any service with an OpenAI-style API: OpenRouter, Groq, Together, Mistral, DeepSeek, OpenCode…'),
+    h('p', { class: 'muted small' }, 'Any service with an OpenAI-style API: OpenRouter, Groq, Together, Mistral, DeepSeek…'),
     settingField('CUSTOM_BASE_URL', 'API address', { placeholder: 'https://openrouter.ai/api/v1' }),
     settingField('CUSTOM_API_KEY', 'API key', { secret: true }),
     modelField('CUSTOM_MODEL', 'custom', { placeholder: 'Model name' }));
