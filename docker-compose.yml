@@ -1,0 +1,46 @@
+# docker compose up -d       then: docker compose logs yapper   (shows the dashboard setup code)
+# Dashboard: http://localhost:3080
+services:
+  yapper:
+    build:
+      context: .
+      args:
+        # true = include the Claude, ChatGPT (Codex) and Gemini CLIs so "Sign in with …" works in the container
+        WITH_AI_CLIS: "false"
+    image: yapper
+    container_name: yapper
+    restart: unless-stopped
+    ports:
+      - "3080:3080"
+    env_file:
+      - path: .env
+        required: false
+    # Lets the container reach a local model server (Ollama, LM Studio) on this machine as
+    # http://host.docker.internal:11434/v1 — Ollama must listen on 0.0.0.0 (OLLAMA_HOST=0.0.0.0).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - yapper-data:/data
+      # Sign-in logins (only with WITH_AI_CLIS=true). Sign in once with:
+      #   docker compose exec -it yapper claude setup-token        (paste the code in the dashboard)
+      #   docker compose exec -it yapper codex login --device-auth
+      #   docker compose exec -it -e NO_BROWSER=true yapper gemini
+      - yapper-claude:/home/node/.claude
+      - yapper-codex:/home/node/.codex
+      - yapper-gemini:/home/node/.gemini
+
+
+  # Optional: Discord tools (https://github.com/SaseQ/discord-mcp). Uncomment, put DISCORD_BOT_TOKEN in .env,
+  # and in the dashboard set Discord tools → server address to http://discord-mcp:8085/mcp
+  # discord-mcp:
+  #   image: saseq/discord-mcp:latest
+  #   restart: unless-stopped
+  #   environment:
+  #     SPRING_PROFILES_ACTIVE: http
+  #     DISCORD_TOKEN: ${DISCORD_BOT_TOKEN}
+
+volumes:
+  yapper-data:
+  yapper-claude:
+  yapper-codex:
+  yapper-gemini:

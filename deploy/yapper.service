@@ -1,0 +1,18 @@
+# systemd user service. Install:
+#   mkdir -p ~/.config/systemd/user && cp deploy/yapper.service ~/.config/systemd/user/
+#   (edit WorkingDirectory if you cloned somewhere else)
+#   systemctl --user daemon-reload && systemctl --user enable --now yapper
+#   sudo loginctl enable-linger $USER    # keep it running when you're logged out
+[Unit]
+Description=Yapper Discord AI bot + dashboard
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/yapper
+ExecStart=/usr/bin/env node --env-file-if-exists=.env src/main.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

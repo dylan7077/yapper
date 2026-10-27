@@ -1,0 +1,33 @@
+#!/bin/sh
+# FreeBSD rc.d script.
+#   sudo cp deploy/yapper.rc /usr/local/etc/rc.d/yapper && sudo chmod +x /usr/local/etc/rc.d/yapper
+#   sudo sysrc yapper_enable=YES yapper_user=$USER yapper_dir=$HOME/yapper
+#   sudo service yapper start
+#   tail -f ~/yapper/storage/yapper.log      # shows the dashboard setup code
+#
+# PROVIDE: yapper
+# REQUIRE: LOGIN NETWORKING
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="yapper"
+rcvar="yapper_enable"
+load_rc_config $name
+
+: ${yapper_enable:="NO"}
+: ${yapper_user:="yapper"}
+: ${yapper_dir:="/home/${yapper_user}/yapper"}
+
+pidfile="/var/run/${name}.pid"
+procname="/usr/sbin/daemon"
+command="/usr/sbin/daemon"
+command_args="-r -R 5 -P ${pidfile} -o ${yapper_dir}/storage/yapper.log -u ${yapper_user} /bin/sh -c 'cd ${yapper_dir} && exec /usr/local/bin/node --env-file-if-exists=.env src/main.js'"
+
+start_precmd="${name}_prestart"
+yapper_prestart() {
+  install -d -o "${yapper_user}" "${yapper_dir}/storage"
+  touch "${pidfile}" && chown "${yapper_user}" "${pidfile}"
+}
+
+run_rc_command "$1"

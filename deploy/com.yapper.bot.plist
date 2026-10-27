@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- macOS launchd agent: starts Yapper at login and keeps it running.
+     1. Replace /Users/YOU/yapper (3 places) with where you cloned it.
+     2. cp deploy/com.yapper.bot.plist ~/Library/LaunchAgents/
+     3. launchctl load -w ~/Library/LaunchAgents/com.yapper.bot.plist
+     Logs (and the setup code): tail -f ~/yapper/storage/yapper.log -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.yapper.bot</string>
+  <key>WorkingDirectory</key><string>/Users/YOU/yapper</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>-lc</string>
+    <string>mkdir -p storage &amp;&amp; exec node --env-file-if-exists=.env src/main.js</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/Users/YOU/yapper/storage/yapper.log</string>
+  <key>StandardErrorPath</key><string>/Users/YOU/yapper/storage/yapper.log</string>
+</dict>
+</plist>
